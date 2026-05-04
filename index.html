@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>הבנק המשפחתי</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal-dark: #0F6E56;
+    --teal-mid: #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-border: #5DCAA5;
+    --red-dark: #A32D2D;
+    --red-light: #FCEBEB;
+    --red-border: #F09595;
+    --bg: #F5F5F3;
+    --card: #FFFFFF;
+    --border: rgba(0,0,0,0.1);
+    --text: #1a1a1a;
+    --text-muted: #666;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 1.5rem 1rem;
+  }
+
+  .app { max-width: 760px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Kids grid */
+  .kids-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .kid-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .kid-card:hover { border-color: var(--teal-mid); }
+  .kid-card.active {
+    border-color: var(--teal-mid);
+    box-shadow: 0 0 0 3px rgba(29,158,117,0.12);
+  }
+  .kid-card .delete-kid {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: none;
+  }
+  .kid-card:hover .delete-kid { display: block; }
+  .kid-card .delete-kid:hover { color: var(--red-dark); background: var(--red-light); }
+
+  .kid-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .kid-name { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .kid-balance { font-size: 24px; font-weight: 700; }
+  .kid-balance-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .kid-allowance-tag {
+    font-size: 11px;
+    color: var(--teal-dark);
+    background: var(--teal-light);
+    border-radius: 20px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-top: 6px;
+  }
+
+  /* Add kid card */
+  .add-kid-card {
+    background: none;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+    transition: border-color 0.15s, color 0.15s;
+    min-height: 140px;
+  }
+  .add-kid-card:hover { border-color: var(--teal-mid); color: var(--teal-mid); }
+  .add-kid-card .plus { font-size: 28px; line-height: 1; }
+
+  /* Panel */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+  .panel-placeholder {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 3rem 0;
+    font-size: 14px;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-name { font-size: 16px; font-weight: 600; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+  .stat {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .stat-val { font-size: 20px; font-weight: 700; }
+
+  /* Allowance setting */
+  .allowance-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+    font-size: 13px;
+    color: var(--text-muted);
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .allowance-row input {
+    width: 70px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    background: white;
+    color: var(--text);
+  }
+  .allowance-row button {
+    font-size: 12px;
+    padding: 5px 12px;
+    background: var(--teal-light);
+    color: var(--teal-dark);
+    border: 1px solid var(--teal-border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .allowance-row button:hover { background: var(--teal-border); }
+
+  /* Add transaction */
+  .add-tx-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .add-tx-row input[type=number] { width: 90px; }
+  .add-tx-row input[type=text] { flex: 1; min-width: 120px; }
+  .add-tx-row input {
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: white;
+    color: var(--text);
+  }
+  .btn-income {
+    background: var(--teal-light);
+    color: var(--teal-dark);
+    border: 1px solid var(--teal-border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-income:hover { background: var(--teal-border); }
+  .btn-expense {
+    background: var(--red-light);
+    color: var(--red-dark);
+    border: 1px solid var(--red-border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-expense:hover { background: var(--red-border); }
+
+  /* Transaction list */
+  .tx-section-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .tx-list { display: flex; flex-direction: column; gap: 6px; }
+  .tx-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 12px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+  }
+  .tx-row:hover .tx-delete { opacity: 1; }
+  .tx-desc { font-size: 13px; font-weight: 500; }
+  .tx-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .tx-right { display: flex; align-items: center; gap: 10px; }
+  .tx-amount { font-size: 15px; font-weight: 700; }
+  .tx-amount.income { color: var(--teal-dark); }
+  .tx-amount.expense { color: var(--red-dark); }
+  .tx-delete {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.1s;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .tx-delete:hover { color: var(--red-dark); background: var(--red-light); opacity: 1; }
+  .tx-empty { text-align: center; color: var(--text-muted); font-size: 13px; padding: 2rem 0; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal {
+    background: white;
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    width: 320px;
+    max-width: 90vw;
+  }
+  .modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+  .modal label { font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .modal input {
+    width: 100%;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-btns button { font-size: 13px; padding: 8px 16px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
+  .btn-cancel { background: white; color: var(--text-muted); }
+  .btn-confirm { background: var(--teal-mid); color: white; border-color: var(--teal-mid); font-weight: 600; }
+  .btn-confirm:hover { background: var(--teal-dark); }
+
+  /* Loading */
+  .loading { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 14px; }
+
+  /* Status toast */
+  #toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 50%;
+    transform: translateX(50%);
+    background: #1a1a1a;
+    color: white;
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 480px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .kids-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>הבנק המשפחתי</h1>
+      <div class="header-sub" id="sync-status">מתחבר...</div>
+    </div>
+  </div>
+
+  <div id="kids-grid" class="kids-grid">
+    <div class="loading">טוען נתונים...</div>
+  </div>
+
+  <div class="panel" id="main-panel">
+    <div class="panel-placeholder">בחר ילד כדי לראות פרטים</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal" style="display:none;">
+  <div class="modal">
+    <h2 id="modal-title">הוסף ילד</h2>
+    <label>שם הילד</label>
+    <input type="text" id="modal-name" placeholder="למשל: נועה" />
+    <label>דמי כיס שבועיים (₪)</label>
+    <input type="number" id="modal-allowance" placeholder="0" min="0" step="1" />
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">ביטול</button>
+      <button class="btn-confirm" onclick="confirmAddKid()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, push, remove, onValue, update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBKK8MZotCmhDp_86kLv1G42RVUWsNiVRY",
+  authDomain: "family-bank-9401c.firebaseapp.com",
+  databaseURL: "https://family-bank-9401c-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "family-bank-9401c",
+  storageBucket: "family-bank-9401c.firebasestorage.app",
+  messagingSenderId: "322322946024",
+  appId: "1:322322946024:web:9817d4e817029ba7dd765d"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const COLORS = [
+  {bg:'#E1F5EE', text:'#0F6E56'},
+  {bg:'#E6F1FB', text:'#185FA5'},
+  {bg:'#FAEEDA', text:'#854F0B'},
+  {bg:'#FBEAF0', text:'#993556'},
+  {bg:'#EAF3DE', text:'#3B6D11'},
+  {bg:'#EEEDFE', text:'#3C3489'},
+];
+
+let kids = {};
+let activeKidId = null;
+
+function today() {
+  return new Date().toLocaleDateString('he-IL');
+}
+
+function balance(kid) {
+  const txs = kid.txs || {};
+  return Object.values(txs).reduce((s, t) => t.type === 'income' ? s + t.amount : s - t.amount, 0);
+}
+function totalIncome(kid) {
+  return Object.values(kid.txs || {}).filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+}
+function totalExpense(kid) {
+  return Object.values(kid.txs || {}).filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function renderKids() {
+  const grid = document.getElementById('kids-grid');
+  const entries = Object.entries(kids);
+  grid.innerHTML = '';
+
+  entries.forEach(([id, kid], i) => {
+    const c = COLORS[i % COLORS.length];
+    const bal = balance(kid);
+    const div = document.createElement('div');
+    div.className = 'kid-card' + (activeKidId === id ? ' active' : '');
+    div.onclick = () => selectKid(id);
+    div.innerHTML = `
+      <button class="delete-kid" onclick="event.stopPropagation(); deleteKid('${id}', '${kid.name}')" title="מחק ילד">✕</button>
+      <div class="kid-avatar" style="background:${c.bg};color:${c.text};">${kid.name[0]}</div>
+      <div class="kid-name">${kid.name}</div>
+      <div class="kid-balance" style="color:${bal < 0 ? '#A32D2D' : 'inherit'}">₪${Math.round(bal)}</div>
+      <div class="kid-balance-label">יתרה</div>
+      ${kid.allowance ? `<div class="kid-allowance-tag">₪${kid.allowance}/שבוע</div>` : ''}
+    `;
+    grid.appendChild(div);
+  });
+
+  // Add kid button
+  const addBtn = document.createElement('div');
+  addBtn.className = 'add-kid-card';
+  addBtn.onclick = openModal;
+  addBtn.innerHTML = `<span class="plus">+</span><span>הוסף ילד</span>`;
+  grid.appendChild(addBtn);
+}
+
+function renderPanel() {
+  const panel = document.getElementById('main-panel');
+  if (!activeKidId || !kids[activeKidId]) {
+    panel.innerHTML = '<div class="panel-placeholder">בחר ילד כדי לראות פרטים</div>';
+    return;
+  }
+  const kid = kids[activeKidId];
+  const bal = balance(kid);
+  const inc = totalIncome(kid);
+  const exp = totalExpense(kid);
+  const txEntries = Object.entries(kid.txs || {}).sort((a, b) => b[1].ts - a[1].ts);
+
+  panel.innerHTML = `
+    <div class="panel-header">
+      <span class="panel-name">${kid.name}</span>
+    </div>
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-label">יתרה</div>
+        <div class="stat-val" style="color:${bal < 0 ? '#A32D2D' : 'inherit'}">₪${Math.round(bal)}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">הכנסות</div>
+        <div class="stat-val" style="color:#0F6E56">₪${Math.round(inc)}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">הוצאות</div>
+        <div class="stat-val" style="color:#A32D2D">₪${Math.round(exp)}</div>
+      </div>
+    </div>
+    <div class="allowance-row">
+      <span>דמי כיס שבועיים:</span>
+      <input type="number" id="allowance-input" min="0" step="1" value="${kid.allowance || 0}" />
+      <span>₪</span>
+      <button onclick="setAllowance()">שמור</button>
+      <button onclick="payAllowance()" style="background:#E6F1FB;color:#185FA5;border-color:#85B7EB;margin-right:4px;">שלם עכשיו</button>
+    </div>
+    <div class="add-tx-row">
+      <input type="number" id="tx-amount" placeholder="סכום ₪" min="1" step="1" />
+      <input type="text" id="tx-desc" placeholder="תיאור" />
+      <button class="btn-income" onclick="addTx('income')">+ הכנסה</button>
+      <button class="btn-expense" onclick="addTx('expense')">− הוצאה</button>
+    </div>
+    <div class="tx-section-label">היסטוריית תנועות</div>
+    <div class="tx-list">
+      ${txEntries.length === 0
+        ? '<div class="tx-empty">אין תנועות עדיין</div>'
+        : txEntries.map(([txId, t]) => `
+          <div class="tx-row">
+            <div>
+              <div class="tx-desc">${t.desc}</div>
+              <div class="tx-date">${t.date}</div>
+            </div>
+            <div class="tx-right">
+              <div class="tx-amount ${t.type}">${t.type === 'income' ? '+' : '−'}₪${Math.round(t.amount)}</div>
+              <button class="tx-delete" onclick="deleteTx('${txId}')" title="מחק">✕</button>
+            </div>
+          </div>
+        `).join('')}
+    </div>
+  `;
+}
+
+function selectKid(id) {
+  activeKidId = id;
+  renderKids();
+  renderPanel();
+}
+
+window.setAllowance = function() {
+  if (!activeKidId) return;
+  const val = parseFloat(document.getElementById('allowance-input').value) || 0;
+  update(ref(db, `kids/${activeKidId}`), { allowance: Math.round(val) });
+  showToast('דמי כיס עודכנו');
+};
+
+window.payAllowance = function() {
+  if (!activeKidId) return;
+  const kid = kids[activeKidId];
+  const amt = kid.allowance || 0;
+  if (!amt) { showToast('הגדר קודם דמי כיס שבועיים'); return; }
+  const txRef = push(ref(db, `kids/${activeKidId}/txs`));
+  set(txRef, { type: 'income', amount: amt, desc: 'דמי כיס שבועיים', date: today(), ts: Date.now() });
+  showToast(`שולמו ₪${amt} לחשבון ${kid.name}`);
+};
+
+window.addTx = function(type) {
+  if (!activeKidId) return;
+  const amtEl = document.getElementById('tx-amount');
+  const descEl = document.getElementById('tx-desc');
+  const amt = parseFloat(amtEl.value);
+  const desc = descEl.value.trim();
+  if (!amt || amt <= 0 || !desc) { showToast('נא למלא סכום ותיאור'); return; }
+  const txRef = push(ref(db, `kids/${activeKidId}/txs`));
+  set(txRef, { type, amount: Math.round(amt), desc, date: today(), ts: Date.now() });
+  amtEl.value = '';
+  descEl.value = '';
+  showToast(type === 'income' ? `נוספה הכנסה: ₪${Math.round(amt)}` : `נרשמה הוצאה: ₪${Math.round(amt)}`);
+};
+
+window.deleteTx = function(txId) {
+  if (!activeKidId) return;
+  remove(ref(db, `kids/${activeKidId}/txs/${txId}`));
+};
+
+window.deleteKid = function(id, name) {
+  if (!confirm(`למחוק את ${name} וכל ההיסטוריה שלו/ה?`)) return;
+  remove(ref(db, `kids/${id}`));
+  if (activeKidId === id) { activeKidId = null; }
+};
+
+// Modal
+window.openModal = function() {
+  document.getElementById('modal-name').value = '';
+  document.getElementById('modal-allowance').value = '';
+  document.getElementById('modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('modal-name').focus(), 50);
+};
+window.closeModal = function() {
+  document.getElementById('modal').style.display = 'none';
+};
+window.confirmAddKid = function() {
+  const name = document.getElementById('modal-name').value.trim();
+  const allowance = parseFloat(document.getElementById('modal-allowance').value) || 0;
+  if (!name) { showToast('נא להזין שם'); return; }
+  const kidRef = push(ref(db, 'kids'));
+  set(kidRef, { name, allowance: Math.round(allowance), txs: {} });
+  closeModal();
+  showToast(`${name} נוסף/ה לבנק המשפחתי`);
+};
+
+// Enter key in modal
+document.getElementById('modal-allowance').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmAddKid();
+});
+document.getElementById('modal-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('modal-allowance').focus();
+});
+
+// Firebase listener
+onValue(ref(db, 'kids'), snapshot => {
+  kids = snapshot.val() || {};
+  document.getElementById('sync-status').textContent = 'מסונכרן';
+  renderKids();
+  renderPanel();
+}, err => {
+  document.getElementById('sync-status').textContent = 'שגיאת חיבור';
+  console.error(err);
+});
+</script>
+</body>
+</html>
