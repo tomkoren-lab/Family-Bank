@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>הבנק המשפחתי</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#1D9E75;--teal-light:#E1F5EE;--teal-dark:#0F6E56;--teal-border:#5DCAA5;
+  --blue:#2563EB;--blue-light:#EFF6FF;
+  --red:#DC2626;--red-light:#FEF2F2;--red-border:#FCA5A5;
+  --amber:#D97706;--amber-light:#FFFBEB;
+  --purple:#7C3AED;--purple-light:#F5F3FF;
+  --bg:#F0F4F8;--card:#FFFFFF;--border:rgba(0,0,0,0.09);
+  --text:#111827;--muted:#6B7280;
+  --radius:16px;--radius-sm:10px;--radius-xs:6px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ---- SCREENS ---- */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ---- HOME ---- */
+#screen-home{background:linear-gradient(160deg,#1D9E75 0%,#0F6E56 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center}
+.home-title{font-size:32px;font-weight:800;color:#fff;margin-bottom:6px}
+.home-subtitle{font-size:16px;color:rgba(255,255,255,0.75);margin-bottom:3rem}
+.home-buttons{display:flex;flex-direction:column;gap:16px;width:100%;max-width:300px}
+.btn-home-admin{background:#fff;color:var(--teal-dark);border:none;border-radius:var(--radius);padding:18px 24px;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.15)}
+.btn-home-admin:hover{background:#f0fdf8}
+.btn-home-kid{background:rgba(255,255,255,0.18);color:#fff;border:2px solid rgba(255,255,255,0.4);border-radius:var(--radius);padding:18px 24px;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-home-kid:hover{background:rgba(255,255,255,0.28)}
+
+/* ---- PIN SCREEN ---- */
+#screen-pin{background:linear-gradient(160deg,#1D9E75 0%,#0F6E56 100%);display:flex;align-items:center;justify-content:center}
+.pin-box{background:#fff;border-radius:24px;padding:2rem;width:320px;max-width:90vw;text-align:center}
+.pin-box h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.pin-box p{font-size:13px;color:var(--muted);margin-bottom:1.5rem}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:1.5rem}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:#E5E7EB;transition:background 0.15s}
+.pin-dot.filled{background:var(--teal)}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pin-btn{background:#F9FAFB;border:1px solid var(--border);border-radius:12px;padding:16px;font-size:22px;font-weight:600;cursor:pointer;transition:background 0.1s}
+.pin-btn:hover{background:#E5E7EB}
+.pin-btn.del{font-size:16px;color:var(--muted)}
+.pin-error{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+.pin-back{margin-top:1rem;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline}
+
+/* ---- KID SELECT ---- */
+#screen-kid-select{background:var(--bg);padding:2rem 1rem}
+.kid-select-header{text-align:center;margin-bottom:2rem}
+.kid-select-header h2{font-size:24px;font-weight:800;color:var(--teal-dark)}
+.kid-select-header p{font-size:14px;color:var(--muted);margin-top:4px}
+.kid-bubbles{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;max-width:600px;margin:0 auto}
+.kid-bubble{display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;padding:16px;border-radius:20px;border:3px solid transparent;transition:all 0.15s;background:#fff;min-width:120px}
+.kid-bubble:hover{border-color:var(--teal);transform:scale(1.04)}
+.kid-bubble-avatar{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;overflow:hidden}
+.kid-bubble-avatar img{width:100%;height:100%;object-fit:cover}
+.kid-bubble-name{font-size:16px;font-weight:700}
+.kid-bubble-balance{font-size:14px;font-weight:600;color:var(--teal-dark);background:var(--teal-light);padding:3px 10px;border-radius:20px}
+.btn-back-home{display:block;margin:2rem auto 0;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;text-decoration:underline}
+
+/* ---- KID DASHBOARD ---- */
+#screen-kid{background:var(--bg);min-height:100vh}
+.kid-header{padding:1.5rem 1rem 1rem;display:flex;align-items:center;justify-content:space-between}
+.kid-header-left{display:flex;align-items:center;gap:12px}
+.kid-header-avatar{width:52px;height:52px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;flex-shrink:0}
+.kid-header-avatar img{width:100%;height:100%;object-fit:cover}
+.kid-header-name{font-size:20px;font-weight:800}
+.kid-header-greeting{font-size:13px;color:var(--muted)}
+.btn-kid-back{background:none;border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;color:var(--muted);cursor:pointer}
+
+.kid-balance-card{margin:0 1rem 1rem;background:linear-gradient(135deg,var(--teal) 0%,var(--teal-dark) 100%);border-radius:var(--radius);padding:1.5rem;color:#fff;text-align:center}
+.kid-balance-label{font-size:14px;opacity:0.85;margin-bottom:4px}
+.kid-balance-amount{font-size:52px;font-weight:900;line-height:1}
+.kid-balance-shekel{font-size:28px;font-weight:600;margin-left:4px}
+
+.kid-chart-card{margin:0 1rem 1rem;background:#fff;border-radius:var(--radius);padding:1.25rem}
+.kid-chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.kid-chart-title{font-size:15px;font-weight:700}
+.chart-toggle{display:flex;background:var(--bg);border-radius:20px;padding:3px;gap:3px}
+.chart-toggle button{background:none;border:none;border-radius:18px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--muted);font-weight:600}
+.chart-toggle button.active{background:#fff;color:var(--teal-dark);box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+
+.kid-txs-card{margin:0 1rem 1rem;background:#fff;border-radius:var(--radius);padding:1.25rem}
+.kid-txs-title{font-size:15px;font-weight:700;margin-bottom:1rem}
+.tx-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.tx-item:last-child{border-bottom:none}
+.tx-item-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-left:10px}
+.tx-item-icon.income{background:var(--teal-light)}
+.tx-item-icon.expense{background:var(--red-light)}
+.tx-item-desc{font-size:14px;font-weight:600}
+.tx-item-date{font-size:11px;color:var(--muted)}
+.tx-item-amount{font-size:16px;font-weight:800}
+.tx-item-amount.income{color:var(--teal-dark)}
+.tx-item-amount.expense{color:var(--red)}
+.tx-empty{text-align:center;color:var(--muted);font-size:14px;padding:2rem 0}
+
+/* ---- ADMIN ---- */
+#screen-admin{background:var(--bg);min-height:100vh}
+.admin-topbar{background:#fff;border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.admin-topbar-title{font-size:18px;font-weight:800}
+.admin-topbar-right{display:flex;gap:8px}
+.btn-sm{background:none;border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-sm:hover{background:var(--bg)}
+.btn-sm.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-sm.primary:hover{background:var(--teal-dark)}
+.btn-sm.danger{color:var(--red);border-color:var(--red-border)}
+.btn-sm.danger:hover{background:var(--red-light)}
+
+.admin-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);padding:0 1.5rem;gap:0}
+.admin-tab{padding:14px 20px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);background:none;border-top:none;border-right:none;border-left:none}
+.admin-tab.active{color:var(--teal-dark);border-bottom-color:var(--teal)}
+
+.admin-content{padding:1.5rem}
+
+/* Kids management */
+.admin-kids-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:1.5rem}
+.admin-kid-card{background:#fff;border-radius:var(--radius);padding:1.25rem;border:1px solid var(--border)}
+.admin-kid-top{display:flex;align-items:center;gap:12px;margin-bottom:1rem}
+.admin-kid-avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;cursor:pointer;position:relative;flex-shrink:0}
+.admin-kid-avatar img{width:100%;height:100%;object-fit:cover}
+.admin-kid-avatar-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.35);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;font-size:14px;color:#fff}
+.admin-kid-avatar:hover .admin-kid-avatar-overlay{opacity:1}
+.admin-kid-info{flex:1}
+.admin-kid-name{font-size:16px;font-weight:700}
+.admin-kid-balance{font-size:14px;color:var(--muted)}
+.admin-kid-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.admin-stat{background:var(--bg);border-radius:var(--radius-sm);padding:8px 10px}
+.admin-stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px}
+.admin-stat-val{font-size:17px;font-weight:700}
+.admin-kid-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Add transaction form inside kid card */
+.add-tx-form{background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-top:10px}
+.add-tx-form-row{display:flex;gap:6px;margin-bottom:6px}
+.add-tx-form input{flex:1;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-xs);padding:7px 10px;background:#fff;color:var(--text);min-width:0}
+.add-tx-form-btns{display:flex;gap:6px}
+.btn-income{background:var(--teal-light);color:var(--teal-dark);border:1px solid var(--teal-border);border-radius:var(--radius-xs);padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;flex:1}
+.btn-income:hover{background:var(--teal-border)}
+.btn-expense{background:var(--red-light);color:var(--red);border:1px solid var(--red-border);border-radius:var(--radius-xs);padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;flex:1}
+.btn-expense:hover{background:var(--red-border)}
+
+/* Admin tx history inside kid card */
+.admin-kid-txs{margin-top:10px;max-height:180px;overflow-y:auto}
+
+/* Settings panel */
+.settings-section{background:#fff;border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.settings-section h3{font-size:15px;font-weight:700;margin-bottom:1rem;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.settings-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:14px}
+.settings-row label{min-width:160px;color:var(--muted);font-size:13px}
+.settings-row input[type=text],.settings-row input[type=number],.settings-row input[type=password]{flex:1;font-size:14px;border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 12px;color:var(--text)}
+.settings-row select{flex:1;font-size:14px;border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 12px;color:var(--text);background:#fff}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#D1D5DB;border-radius:12px;cursor:pointer;transition:background 0.2s}
+.toggle input:checked+.toggle-slider{background:var(--teal)}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform 0.2s}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
+
+.kid-allowance-settings{margin-top:8px}
+.kid-allowance-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.kid-allowance-row:last-child{border-bottom:none}
+.kid-allowance-row .kid-mini-avatar{width:28px;height:28px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.kid-allowance-row .kid-mini-avatar img{width:100%;height:100%;object-fit:cover}
+.kid-allowance-row span{flex:1;font-weight:600}
+.kid-allowance-row input{width:80px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-xs);padding:6px 8px;text-align:center}
+
+/* Add kid button */
+.btn-add-kid{background:#fff;border:2px dashed var(--border);border-radius:var(--radius);padding:1.25rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--muted);font-size:14px;font-weight:600;min-height:100px;transition:border-color 0.15s,color 0.15s}
+.btn-add-kid:hover{border-color:var(--teal);color:var(--teal)}
+.btn-add-kid .plus{font-size:30px;line-height:1}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem}
+.modal{background:#fff;border-radius:20px;padding:1.5rem;width:340px;max-width:100%}
+.modal h2{font-size:17px;font-weight:700;margin-bottom:1rem}
+.modal label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.modal input,.modal select{width:100%;font-size:14px;border:1px solid var(--border);border-radius:var(--radius-xs);padding:9px 12px;margin-bottom:12px;color:var(--text)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.modal-btns button{font-size:14px;padding:9px 18px;border-radius:8px;cursor:pointer;border:1px solid var(--border);font-weight:600}
+.modal-cancel{background:#fff;color:var(--muted)}
+.modal-confirm{background:var(--teal);color:#fff;border-color:var(--teal)}
+.modal-confirm:hover{background:var(--teal-dark)}
+
+/* Toast */
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#111;color:#fff;font-size:14px;padding:10px 22px;border-radius:30px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast.show{opacity:1}
+
+/* Add kid modal - photo upload */
+.photo-upload-area{border:2px dashed var(--border);border-radius:12px;padding:1rem;text-align:center;cursor:pointer;margin-bottom:12px;font-size:13px;color:var(--muted)}
+.photo-upload-area:hover{border-color:var(--teal);color:var(--teal)}
+.photo-preview{width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 8px;display:block}
+
+@media(max-width:480px){
+  .admin-kids-grid{grid-template-columns:1fr}
+  .admin-tabs{overflow-x:auto;padding:0 1rem}
+  .admin-tab{white-space:nowrap;padding:12px 14px;font-size:13px}
+  .kid-balance-amount{font-size:42px}
+}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="home-title" id="home-family-name">הבנק המשפחתי</div>
+  <div class="home-subtitle">ניהול חכם של דמי הכיס</div>
+  <div class="home-buttons">
+    <button class="btn-home-admin" onclick="goToPin('admin')">🔐 כניסת הורים</button>
+    <button class="btn-home-kid" onclick="goScreen('kid-select')">👦 כניסת ילדים</button>
+  </div>
+</div>
+
+<!-- PIN -->
+<div id="screen-pin" class="screen">
+  <div class="pin-box">
+    <h2 id="pin-title">כניסת הורים</h2>
+    <p>הזן קוד סודי</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn" onclick="pinPress('0')" style="grid-column:2">0</button>
+      <button class="pin-btn del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <button class="pin-back" onclick="goScreen('home')">חזרה</button>
+  </div>
+</div>
+
+<!-- KID SELECT -->
+<div id="screen-kid-select" class="screen">
+  <div style="padding:2rem 1rem">
+    <div class="kid-select-header">
+      <h2 id="kid-select-title">מי אתה?</h2>
+      <p>בחר את החשבון שלך</p>
+    </div>
+    <div class="kid-bubbles" id="kid-bubbles"></div>
+    <button class="btn-back-home" onclick="goScreen('home')">חזרה לעמוד הראשי</button>
+  </div>
+</div>
+
+<!-- KID DASHBOARD -->
+<div id="screen-kid" class="screen">
+  <div class="kid-header">
+    <div class="kid-header-left">
+      <div class="kid-header-avatar" id="kid-dash-avatar"></div>
+      <div>
+        <div class="kid-header-name" id="kid-dash-name"></div>
+        <div class="kid-header-greeting" id="kid-dash-greeting"></div>
+      </div>
+    </div>
+    <button class="btn-kid-back" onclick="goScreen('kid-select')">← חזרה</button>
+  </div>
+
+  <div class="kid-balance-card">
+    <div class="kid-balance-label">היתרה שלי</div>
+    <div><span class="kid-balance-shekel">₪</span><span class="kid-balance-amount" id="kid-dash-balance">0</span></div>
+  </div>
+
+  <div class="kid-chart-card">
+    <div class="kid-chart-header">
+      <span class="kid-chart-title">שינויים בחשבון</span>
+      <div class="chart-toggle">
+        <button id="chart-btn-week" class="active" onclick="setChartMode('week')">שבועי</button>
+        <button id="chart-btn-month" onclick="setChartMode('month')">חודשי</button>
+      </div>
+    </div>
+    <canvas id="kid-chart" height="160"></canvas>
+  </div>
+
+  <div class="kid-txs-card">
+    <div class="kid-txs-title">תנועות אחרונות</div>
+    <div id="kid-dash-txs"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="screen-admin" class="screen">
+  <div class="admin-topbar">
+    <div class="admin-topbar-title" id="admin-topbar-title">ניהול</div>
+    <div class="admin-topbar-right">
+      <button class="btn-sm" onclick="goScreen('home')">יציאה</button>
+    </div>
+  </div>
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchTab('kids')" id="tab-kids">ילדים</button>
+    <button class="admin-tab" onclick="switchTab('settings')" id="tab-settings">הגדרות</button>
+  </div>
+  <div class="admin-content">
+    <div id="tab-content-kids"></div>
+    <div id="tab-content-settings" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ADD KID MODAL -->
+<div class="modal-bg" id="modal-add-kid" style="display:none">
+  <div class="modal">
+    <h2>הוספת ילד</h2>
+    <div class="photo-upload-area" onclick="document.getElementById('kid-photo-input').click()">
+      <img id="kid-photo-preview" style="display:none" class="photo-preview"/>
+      <div id="kid-photo-placeholder">לחץ להוספת תמונה (אופציונלי)</div>
+    </div>
+    <input type="file" id="kid-photo-input" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)"/>
+    <label>שם הילד</label>
+    <input type="text" id="add-kid-name" placeholder="למשל: נועה"/>
+    <label>צבע חשבון</label>
+    <select id="add-kid-color">
+      <option value="teal">ירוק</option>
+      <option value="blue">כחול</option>
+      <option value="purple">סגול</option>
+      <option value="amber">כתום</option>
+      <option value="pink">ורוד</option>
+    </select>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('modal-add-kid')">ביטול</button>
+      <button class="modal-confirm" onclick="confirmAddKid()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE KID MODAL -->
+<div class="modal-bg" id="modal-delete-kid" style="display:none">
+  <div class="modal">
+    <h2>מחיקת ילד</h2>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">פעולה זו תמחק את כל הנתונים של <strong id="delete-kid-name-label"></strong>. לא ניתן לבטל.</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('modal-delete-kid')">ביטול</button>
+      <button class="modal-confirm" style="background:var(--red);border-color:var(--red)" onclick="confirmDeleteKid()">מחק</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO EDIT MODAL (admin) -->
+<div class="modal-bg" id="modal-edit-photo" style="display:none">
+  <div class="modal">
+    <h2>עדכון תמונה</h2>
+    <div class="photo-upload-area" onclick="document.getElementById('edit-photo-input').click()">
+      <img id="edit-photo-preview" style="display:none" class="photo-preview"/>
+      <div id="edit-photo-placeholder">לחץ לבחירת תמונה</div>
+    </div>
+    <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="handleEditPhotoSelect(event)"/>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('modal-edit-photo')">ביטול</button>
+      <button class="modal-confirm" onclick="confirmEditPhoto()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, push, remove, onValue, update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBKK8MZotCmhDp_86kLv1G42RVUWsNiVRY",
+  authDomain: "family-bank-9401c.firebaseapp.com",
+  databaseURL: "https://family-bank-9401c-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "family-bank-9401c",
+  storageBucket: "family-bank-9401c.firebasestorage.app",
+  messagingSenderId: "322322946024",
+  appId: "1:322322946024:web:9817d4e817029ba7dd765d"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+// ---- STATE ----
+let state = {
+  kids: {},
+  settings: {
+    familyName: 'הבנק המשפחתי',
+    pin: '1234',
+    autoAllowance: false,
+    allowanceDay: 'friday'
+  }
+};
+let activeKidId = null;
+let kidChart = null;
+let chartMode = 'week';
+let pendingDeleteKidId = null;
+let pendingEditPhotoKidId = null;
+let newKidPhotoB64 = null;
+let editPhotoB64 = null;
+
+const COLOR_MAP = {
+  teal:   {bg:'#E1F5EE', text:'#0F6E56', grad:'linear-gradient(135deg,#1D9E75,#0F6E56)'},
+  blue:   {bg:'#EFF6FF', text:'#1D4ED8', grad:'linear-gradient(135deg,#2563EB,#1D4ED8)'},
+  purple: {bg:'#F5F3FF', text:'#6D28D9', grad:'linear-gradient(135deg,#7C3AED,#6D28D9)'},
+  amber:  {bg:'#FFFBEB', text:'#92400E', grad:'linear-gradient(135deg,#D97706,#92400E)'},
+  pink:   {bg:'#FDF2F8', text:'#9D174D', grad:'linear-gradient(135deg,#EC4899,#9D174D)'}
+};
+
+function colorFor(kid) {
+  return COLOR_MAP[kid.color] || COLOR_MAP.teal;
+}
+
+// ---- FIREBASE ----
+onValue(ref(db, '/'), snap => {
+  const data = snap.val() || {};
+  state.kids = data.kids || {};
+  if (data.settings) state.settings = { ...state.settings, ...data.settings };
+  applySettings();
+  if (document.getElementById('screen-admin').classList.contains('active')) renderAdmin();
+  if (document.getElementById('screen-kid-select').classList.contains('active')) renderKidSelect();
+  if (document.getElementById('screen-kid').classList.contains('active') && activeKidId) renderKidDash(activeKidId);
+});
+
+function saveSettings() { update(ref(db, 'settings'), state.settings); }
+
+// ---- HELPERS ----
+function today() {
+  return new Date().toLocaleDateString('he-IL');
+}
+function balance(kid) {
+  return Object.values(kid.txs || {}).reduce((s,t) => t.type==='income' ? s+t.amount : s-t.amount, 0);
+}
+function totalIncome(kid) {
+  return Object.values(kid.txs||{}).filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+}
+function totalExpense(kid) {
+  return Object.values(kid.txs||{}).filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function avatarHTML(kid, size=56) {
+  const c = colorFor(kid);
+  if (kid.photo) {
+    return `<img src="${kid.photo}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;"/>`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${c.bg};color:${c.text};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.38)}px;font-weight:800;">${(kid.name||'?')[0]}</div>`;
+}
+
+// ---- SCREENS ----
+window.goScreen = function(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  if (name==='kid-select') renderKidSelect();
+  if (name==='admin') renderAdmin();
+};
+
+function applySettings() {
+  document.getElementById('home-family-name').textContent = state.settings.familyName || 'הבנק המשפחתי';
+  document.getElementById('admin-topbar-title').textContent = state.settings.familyName || 'ניהול';
+  document.getElementById('kid-select-title').textContent = 'שלום! מי אתה?';
+}
+
+// ---- PIN ----
+let pinBuffer = '';
+let pinTarget = 'admin';
+
+window.goToPin = function(target) {
+  pinTarget = target;
+  pinBuffer = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  goScreen('pin');
+};
+window.pinPress = function(d) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 120);
+};
+window.pinDel = function() {
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots();
+};
+function updatePinDots() {
+  for (let i=0;i<4;i++) {
+    document.getElementById('dot'+i).classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+function checkPin() {
+  if (pinBuffer === (state.settings.pin || '1234')) {
+    goScreen(pinTarget);
+  } else {
+    document.getElementById('pin-error').textContent = 'קוד שגוי, נסה שוב';
+    pinBuffer = '';
+    updatePinDots();
+  }
+}
+
+// ---- KID SELECT ----
+function renderKidSelect() {
+  const wrap = document.getElementById('kid-bubbles');
+  wrap.innerHTML = '';
+  Object.entries(state.kids).forEach(([id, kid]) => {
+    const c = colorFor(kid);
+    const bal = balance(kid);
+    const div = document.createElement('div');
+    div.className = 'kid-bubble';
+    div.innerHTML = `
+      <div class="kid-bubble-avatar" style="background:${c.bg};color:${c.text};">
+        ${kid.photo ? `<img src="${kid.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>` : (kid.name||'?')[0]}
+      </div>
+      <div class="kid-bubble-name">${kid.name}</div>
+      <div class="kid-bubble-balance">₪${Math.round(bal)}</div>
+    `;
+    div.onclick = () => openKidDash(id);
+    wrap.appendChild(div);
+  });
+}
+
+// ---- KID DASHBOARD ----
+function openKidDash(id) {
+  activeKidId = id;
+  renderKidDash(id);
+  goScreen('kid');
+}
+
+function renderKidDash(id) {
+  const kid = state.kids[id];
+  if (!kid) return;
+  const c = colorFor(kid);
+  const bal = balance(kid);
+
+  // Header
+  document.getElementById('kid-dash-avatar').innerHTML = avatarHTML(kid, 52);
+  document.getElementById('kid-dash-name').textContent = kid.name;
+  document.getElementById('kid-dash-greeting').textContent = getGreeting();
+  document.getElementById('kid-dash-balance').textContent = Math.round(bal);
+
+  // Balance card gradient
+  document.querySelector('.kid-balance-card').style.background = c.grad;
+
+  // Transactions
+  const txs = Object.entries(kid.txs||{}).sort((a,b)=>b[1].ts-a[1].ts).slice(0,20);
+  const txWrap = document.getElementById('kid-dash-txs');
+  if (!txs.length) { txWrap.innerHTML = '<div class="tx-empty">אין תנועות עדיין</div>'; }
+  else {
+    txWrap.innerHTML = txs.map(([,t])=>`
+      <div class="tx-item">
+        <div class="tx-item-icon ${t.type}">${t.type==='income'?'💰':'🛒'}</div>
+        <div style="flex:1">
+          <div class="tx-item-desc">${t.desc}</div>
+          <div class="tx-item-date">${t.date}</div>
+        </div>
+        <div class="tx-item-amount ${t.type}">${t.type==='income'?'+':'−'}₪${Math.round(t.amount)}</div>
+      </div>
+    `).join('');
+  }
+
+  renderKidChart(id, chartMode);
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'בוקר טוב!';
+  if (h < 17) return 'שלום!';
+  return 'ערב טוב!';
+}
+
+window.setChartMode = function(mode) {
+  chartMode = mode;
+  document.getElementById('chart-btn-week').classList.toggle('active', mode==='week');
+  document.getElementById('chart-btn-month').classList.toggle('active', mode==='month');
+  if (activeKidId) renderKidChart(activeKidId, mode);
+};
+
+function renderKidChart(id, mode) {
+  const kid = state.kids[id];
+  if (!kid) return;
+  const txs = Object.values(kid.txs||{});
+  const c = colorFor(kid);
+
+  let labels = [], incomes = [], expenses = [];
+
+  if (mode === 'week') {
+    // last 8 weeks
+    for (let i=7;i>=0;i--) {
+      const d = new Date(); d.setDate(d.getDate() - i*7);
+      const weekStart = new Date(d); weekStart.setDate(d.getDate() - d.getDay());
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+      const label = `${weekStart.getDate()}/${weekStart.getMonth()+1}`;
+      const weekTxs = txs.filter(t => {
+        const td = new Date(t.ts||0);
+        return td >= weekStart && td <= weekEnd;
+      });
+      labels.push(label);
+      incomes.push(weekTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
+      expenses.push(weekTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0));
+    }
+  } else {
+    // last 6 months
+    for (let i=5;i>=0;i--) {
+      const d = new Date(); d.setMonth(d.getMonth()-i);
+      const y = d.getFullYear(), m = d.getMonth();
+      const MONTHS = ['ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'];
+      labels.push(MONTHS[m]);
+      const mTxs = txs.filter(t => { const td = new Date(t.ts||0); return td.getFullYear()===y && td.getMonth()===m; });
+      incomes.push(mTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
+      expenses.push(mTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0));
+    }
+  }
+
+  const ctx = document.getElementById('kid-chart');
+  if (kidChart) kidChart.destroy();
+  kidChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'הכנסות', data:incomes, backgroundColor: c.text+'99', borderRadius:6, borderSkipped:false },
+        { label:'הוצאות', data:expenses, backgroundColor: '#DC262655', borderRadius:6, borderSkipped:false }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:12}, boxWidth:12 } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:11}} },
+        y:{ grid:{color:'rgba(0,0,0,0.05)'}, ticks:{font:{size:11}, callback:v=>'₪'+v} }
+      }
+    }
+  });
+}
+
+// ---- ADMIN ----
+window.switchTab = function(tab) {
+  ['kids','settings'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('tab-content-'+t).style.display = t===tab ? '' : 'none';
+  });
+};
+
+function renderAdmin() {
+  renderAdminKids();
+  renderAdminSettings();
+}
+
+function renderAdminKids() {
+  const wrap = document.getElementById('tab-content-kids');
+  const entries = Object.entries(state.kids);
+  let html = '<div class="admin-kids-grid">';
+
+  entries.forEach(([id, kid]) => {
+    const c = colorFor(kid);
+    const bal = balance(kid);
+    const inc = totalIncome(kid);
+    const exp = totalExpense(kid);
+    const txs = Object.entries(kid.txs||{}).sort((a,b)=>b[1].ts-a[1].ts).slice(0,5);
+
+    html += `
+    <div class="admin-kid-card">
+      <div class="admin-kid-top">
+        <div class="admin-kid-avatar" onclick="openEditPhoto('${id}')" title="שנה תמונה">
+          ${kid.photo
+            ? `<img src="${kid.photo}" style="width:100%;height:100%;object-fit:cover"/>`
+            : `<div style="width:100%;height:100%;background:${c.bg};color:${c.text};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;">${kid.name[0]}</div>`}
+          <div class="admin-kid-avatar-overlay">📷</div>
+        </div>
+        <div class="admin-kid-info">
+          <div class="admin-kid-name">${kid.name}</div>
+          <div class="admin-kid-balance">יתרה: <strong style="color:${bal<0?'var(--red)':'var(--teal-dark)'}">₪${Math.round(bal)}</strong></div>
+        </div>
+      </div>
+      <div class="admin-kid-stats">
+        <div class="admin-stat"><div class="admin-stat-label">הכנסות</div><div class="admin-stat-val" style="color:var(--teal-dark)">₪${Math.round(inc)}</div></div>
+        <div class="admin-stat"><div class="admin-stat-label">הוצאות</div><div class="admin-stat-val" style="color:var(--red)">₪${Math.round(exp)}</div></div>
+      </div>
+      <div class="add-tx-form">
+        <div class="add-tx-form-row">
+          <input type="number" id="amt-${id}" placeholder="סכום ₪" min="1" step="1"/>
+          <input type="text" id="desc-${id}" placeholder="תיאור"/>
+        </div>
+        <div class="add-tx-form-btns">
+          <button class="btn-income" onclick="adminAddTx('${id}','income')">+ הפקדה</button>
+          <button class="btn-expense" onclick="adminAddTx('${id}','expense')">− משיכה</button>
+        </div>
+      </div>
+      <div class="admin-kid-txs">
+        ${txs.length===0
+          ? '<div class="tx-empty">אין תנועות</div>'
+          : txs.map(([txId,t])=>`
+            <div class="tx-item">
+              <div style="flex:1">
+                <div class="tx-item-desc">${t.desc}</div>
+                <div class="tx-item-date">${t.date}</div>
+              </div>
+              <div class="tx-item-amount ${t.type}">${t.type==='income'?'+':'−'}₪${Math.round(t.amount)}</div>
+              <button onclick="adminDeleteTx('${id}','${txId}')" style="background:none;border:none;color:#ccc;cursor:pointer;margin-right:4px;font-size:13px">✕</button>
+            </div>
+          `).join('')}
+      </div>
+      <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+        <button class="btn-sm danger" onclick="openDeleteKid('${id}','${kid.name}')">מחק ילד</button>
+      </div>
+    </div>`;
+  });
+
+  html += `<button class="btn-add-kid" onclick="openAddKid()"><span class="plus">+</span><span>הוסף ילד</span></button>`;
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+function renderAdminSettings() {
+  const s = state.settings;
+  const kids = Object.entries(state.kids);
+  const wrap = document.getElementById('tab-content-settings');
+  wrap.innerHTML = `
+    <div class="settings-section">
+      <h3>כללי</h3>
+      <div class="settings-row">
+        <label>שם המשפחה / האתר</label>
+        <input type="text" id="set-family-name" value="${s.familyName||''}" placeholder="הבנק המשפחתי"/>
+      </div>
+      <div class="settings-row">
+        <label>קוד סודי (4 ספרות)</label>
+        <input type="password" id="set-pin" maxlength="4" value="${s.pin||'1234'}"/>
+      </div>
+      <button class="btn-sm primary" onclick="saveGeneralSettings()">שמור הגדרות</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>דמי כיס קבועים</h3>
+      <div class="settings-row">
+        <label>הפקדה אוטומטית</label>
+        <label class="toggle">
+          <input type="checkbox" id="set-auto" ${s.autoAllowance?'checked':''} onchange="toggleAutoAllowance(this.checked)"/>
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:13px;color:var(--muted)" id="auto-label">${s.autoAllowance?'פעיל':'כבוי'}</span>
+      </div>
+      <div class="settings-row">
+        <label>יום הפקדה</label>
+        <select id="set-allowance-day">
+          <option value="sunday" ${s.allowanceDay==='sunday'?'selected':''}>ראשון</option>
+          <option value="friday" ${s.allowanceDay==='friday'?'selected':''}>שישי</option>
+          <option value="saturday" ${s.allowanceDay==='saturday'?'selected':''}>שבת</option>
+        </select>
+      </div>
+      <div class="kid-allowance-settings">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">סכום לכל ילד:</div>
+        ${kids.map(([id,kid])=>`
+          <div class="kid-allowance-row">
+            <div class="kid-mini-avatar" style="background:${colorFor(kid).bg};color:${colorFor(kid).text}">
+              ${kid.photo?`<img src="${kid.photo}"/>`:(kid.name||'?')[0]}
+            </div>
+            <span>${kid.name}</span>
+            <input type="number" id="allowance-${id}" value="${kid.allowance||0}" min="0" step="1" placeholder="0"/>
+            <span style="font-size:13px;color:var(--muted)">₪</span>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn-sm primary" style="margin-top:10px" onclick="saveAllowanceSettings()">שמור דמי כיס</button>
+      <button class="btn-sm" style="margin-top:10px;margin-right:8px" onclick="payAllNow()">שלם לכולם עכשיו</button>
+    </div>
+  `;
+}
+
+window.saveGeneralSettings = function() {
+  const name = document.getElementById('set-family-name').value.trim();
+  const pin = document.getElementById('set-pin').value.trim();
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { showToast('קוד חייב להיות 4 ספרות'); return; }
+  state.settings.familyName = name || 'הבנק המשפחתי';
+  state.settings.pin = pin;
+  saveSettings();
+  showToast('הגדרות נשמרו');
+};
+
+window.toggleAutoAllowance = function(val) {
+  state.settings.autoAllowance = val;
+  document.getElementById('auto-label').textContent = val ? 'פעיל' : 'כבוי';
+  saveSettings();
+};
+
+window.saveAllowanceSettings = function() {
+  state.settings.allowanceDay = document.getElementById('set-allowance-day').value;
+  const updates = {};
+  Object.keys(state.kids).forEach(id => {
+    const el = document.getElementById('allowance-'+id);
+    if (el) updates[`kids/${id}/allowance`] = parseFloat(el.value)||0;
+  });
+  updates['settings/allowanceDay'] = state.settings.allowanceDay;
+  update(ref(db), updates);
+  showToast('דמי כיס עודכנו');
+};
+
+window.payAllNow = function() {
+  const updates = {};
+  Object.entries(state.kids).forEach(([id,kid]) => {
+    const amt = kid.allowance||0;
+    if (!amt) return;
+    const txKey = push(ref(db,'kids/'+id+'/txs')).key;
+    updates[`kids/${id}/txs/${txKey}`] = { type:'income', amount:amt, desc:'דמי כיס', date:today(), ts:Date.now() };
+  });
+  if (Object.keys(updates).length === 0) { showToast('לא הוגדרו דמי כיס'); return; }
+  update(ref(db), updates);
+  showToast('דמי כיס שולמו לכל הילדים');
+};
+
+window.adminAddTx = function(id, type) {
+  const amtEl = document.getElementById('amt-'+id);
+  const descEl = document.getElementById('desc-'+id);
+  const amt = parseFloat(amtEl.value);
+  const desc = descEl.value.trim();
+  if (!amt || amt<=0 || !desc) { showToast('נא למלא סכום ותיאור'); return; }
+  const txRef = push(ref(db, `kids/${id}/txs`));
+  set(txRef, { type, amount:Math.round(amt), desc, date:today(), ts:Date.now() });
+  amtEl.value=''; descEl.value='';
+  showToast(type==='income' ? `הופקדו ₪${Math.round(amt)}` : `נרשמה הוצאה ₪${Math.round(amt)}`);
+};
+
+window.adminDeleteTx = function(kidId, txId) {
+  remove(ref(db, `kids/${kidId}/txs/${txId}`));
+  showToast('תנועה נמחקה');
+};
+
+// ---- ADD KID ----
+window.openAddKid = function() {
+  newKidPhotoB64 = null;
+  document.getElementById('kid-photo-preview').style.display='none';
+  document.getElementById('kid-photo-placeholder').style.display='';
+  document.getElementById('add-kid-name').value='';
+  document.getElementById('modal-add-kid').style.display='flex';
+};
+
+window.handlePhotoSelect = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    newKidPhotoB64 = ev.target.result;
+    const img = document.getElementById('kid-photo-preview');
+    img.src = newKidPhotoB64;
+    img.style.display='block';
+    document.getElementById('kid-photo-placeholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.confirmAddKid = function() {
+  const name = document.getElementById('add-kid-name').value.trim();
+  const color = document.getElementById('add-kid-color').value;
+  if (!name) { showToast('נא להזין שם'); return; }
+  const kidRef = push(ref(db, 'kids'));
+  const data = { name, color, allowance:0, txs:{} };
+  if (newKidPhotoB64) data.photo = newKidPhotoB64;
+  set(kidRef, data);
+  closeModal('modal-add-kid');
+  showToast(`${name} נוסף/ה לבנק`);
+};
+
+// ---- DELETE KID ----
+window.openDeleteKid = function(id, name) {
+  pendingDeleteKidId = id;
+  document.getElementById('delete-kid-name-label').textContent = name;
+  document.getElementById('modal-delete-kid').style.display='flex';
+};
+window.confirmDeleteKid = function() {
+  if (!pendingDeleteKidId) return;
+  remove(ref(db, `kids/${pendingDeleteKidId}`));
+  closeModal('modal-delete-kid');
+  pendingDeleteKidId = null;
+  showToast('ילד נמחק');
+};
+
+// ---- EDIT PHOTO ----
+window.openEditPhoto = function(id) {
+  pendingEditPhotoKidId = id;
+  editPhotoB64 = null;
+  document.getElementById('edit-photo-preview').style.display='none';
+  document.getElementById('edit-photo-placeholder').style.display='';
+  document.getElementById('modal-edit-photo').style.display='flex';
+};
+window.handleEditPhotoSelect = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    editPhotoB64 = ev.target.result;
+    const img = document.getElementById('edit-photo-preview');
+    img.src = editPhotoB64;
+    img.style.display='block';
+    document.getElementById('edit-photo-placeholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+};
+window.confirmEditPhoto = function() {
+  if (!pendingEditPhotoKidId || !editPhotoB64) { showToast('לא נבחרה תמונה'); return; }
+  update(ref(db, `kids/${pendingEditPhotoKidId}`), { photo: editPhotoB64 });
+  closeModal('modal-edit-photo');
+  showToast('תמונה עודכנה');
+};
+
+// ---- MODAL ----
+window.closeModal = function(id) {
+  document.getElementById(id).style.display='none';
+};
+
+</script>
+</body>
+</html>
